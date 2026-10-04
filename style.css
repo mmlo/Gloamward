@@ -4,10 +4,22 @@
   --dim: #a89880;
   --accent: #ffb15a;
   --danger: #e23d4a;
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
 }
-* { box-sizing: border-box; }
+
+* {
+  box-sizing: border-box;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 html, body {
   margin: 0;
+  padding: 0;
+  width: 100%;
   height: 100%;
   background: var(--bg);
   color: var(--ink);
@@ -17,6 +29,7 @@ html, body {
   user-select: none;
   -webkit-user-select: none;
 }
+
 #wrap {
   position: fixed;
   inset: 0;
@@ -25,15 +38,19 @@ html, body {
   background:
     radial-gradient(900px 500px at 50% 40%, #1a1422 0%, #07060a 70%);
 }
+
 canvas#c {
   width: min(100vw, calc(100vh * 16 / 9));
   height: min(100vh, calc(100vw * 9 / 16));
+  max-width: 100%;
+  max-height: 100%;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   background: #07060a;
   cursor: pointer;
   z-index: 1;
 }
+
 #touch {
   position: fixed;
   inset: 0;
@@ -41,39 +58,172 @@ canvas#c {
   pointer-events: none;
   display: none;
 }
-#touch.on { display: block; }
+
+#touch.on {
+  display: block;
+}
+
 #touch button {
   pointer-events: auto;
   position: absolute;
-  border: 2px solid rgba(243, 234, 215, 0.45);
-  background: rgba(12, 10, 16, 0.42);
+  border: 2px solid rgba(243, 234, 215, 0.42);
+  background: rgba(12, 10, 16, 0.52);
   color: #f3ead7;
   font-family: inherit;
   font-weight: 700;
-  border-radius: 14px;
-  font-size: 22px;
-  width: 74px;
-  height: 74px;
-  backdrop-filter: blur(2px);
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  touch-action: none;
+  transition: transform 0.08s ease, background 0.08s ease, border-color 0.08s ease;
 }
-#btnL { left: 22px; bottom: 28px; }
-#btnR { left: 112px; bottom: 28px; }
-#btnJ { right: 22px; bottom: 28px; width: 86px; height: 86px; }
-#btnD { right: 124px; bottom: 42px; }
-#btnP { right: 16px; top: 14px; width: 54px; height: 42px; font-size: 14px; }
+
+#touch button:active,
+#touch button.active {
+  background: rgba(255, 177, 90, 0.32);
+  border-color: var(--accent);
+  color: #fff8ec;
+  transform: scale(0.93);
+}
+
+/* Directional Cluster (Left hand) */
+#btnL {
+  left: calc(16px + var(--sal));
+  bottom: calc(44px + var(--sab));
+  width: 66px;
+  height: 66px;
+  font-size: 24px;
+}
+
+#btnDn {
+  left: calc(84px + var(--sal));
+  bottom: calc(14px + var(--sab));
+  width: 64px;
+  height: 54px;
+  font-size: 20px;
+}
+
+#btnR {
+  left: calc(152px + var(--sal));
+  bottom: calc(44px + var(--sab));
+  width: 66px;
+  height: 66px;
+  font-size: 24px;
+}
+
+/* Action Cluster (Right hand) */
+#btnJ {
+  right: calc(18px + var(--sar));
+  bottom: calc(22px + var(--sab));
+  width: 84px;
+  height: 84px;
+  font-size: 18px;
+  letter-spacing: 0.05em;
+  border-radius: 50%;
+  border-color: rgba(255, 177, 90, 0.55);
+}
+
+#btnD {
+  right: calc(112px + var(--sar));
+  bottom: calc(38px + var(--sab));
+  width: 70px;
+  height: 70px;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  border-radius: 18px;
+}
+
+/* System Controls (Top right) */
+#btnP {
+  right: calc(16px + var(--sar));
+  top: calc(12px + var(--sat));
+  width: 48px;
+  height: 40px;
+  font-size: 14px;
+  border-radius: 10px;
+}
+
+#btnFS {
+  position: fixed;
+  right: calc(72px + var(--sar));
+  top: calc(12px + var(--sat));
+  width: 48px;
+  height: 40px;
+  font-size: 18px;
+  z-index: 4;
+  border: 2px solid rgba(243, 234, 215, 0.4);
+  background: rgba(12, 10, 16, 0.52);
+  color: #f3ead7;
+  border-radius: 10px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  touch-action: manipulation;
+  transition: transform 0.08s ease, background 0.08s ease;
+}
+
+#btnFS:active {
+  background: rgba(255, 177, 90, 0.3);
+  transform: scale(0.93);
+}
+
+/* Adaptations for compact / low-height mobile viewports */
+@media (max-height: 380px) {
+  #btnL, #btnR { width: 56px; height: 56px; font-size: 20px; }
+  #btnL { bottom: calc(36px + var(--sab)); }
+  #btnR { left: calc(134px + var(--sal)); bottom: calc(36px + var(--sab)); }
+  #btnDn { left: calc(74px + var(--sal)); bottom: calc(10px + var(--sab)); width: 56px; height: 46px; font-size: 17px; }
+  #btnJ { width: 70px; height: 70px; font-size: 15px; bottom: calc(18px + var(--sab)); }
+  #btnD { width: 60px; height: 60px; font-size: 13px; right: calc(96px + var(--sar)); bottom: calc(30px + var(--sab)); }
+  #btnP, #btnFS { width: 42px; height: 34px; font-size: 13px; }
+  #btnFS { right: calc(64px + var(--sar)); }
+}
+
+/* Portrait orientation overlay */
 #rotate {
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 5;
+  z-index: 1000;
   background: #07060a;
   color: #f3ead7;
-  place-items: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 24px;
-  font-size: 18px;
-  letter-spacing: 0.04em;
+  padding: 32px;
+  gap: 14px;
 }
+
+.rotate-icon {
+  font-size: 44px;
+  animation: phoneRotate 2.2s ease-in-out infinite;
+}
+
+.rotate-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--accent);
+  letter-spacing: 0.03em;
+}
+
+.rotate-sub {
+  font-size: 13px;
+  color: var(--dim);
+  max-width: 290px;
+  line-height: 1.45;
+}
+
+@keyframes phoneRotate {
+  0%, 15% { transform: rotate(0deg); }
+  50%, 65% { transform: rotate(-90deg); }
+  90%, 100% { transform: rotate(0deg); }
+}
+
 @media (orientation: portrait) and (max-width: 900px) {
-  #rotate { display: grid; }
+  #rotate { display: flex; }
 }

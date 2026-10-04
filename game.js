@@ -275,7 +275,7 @@ const input = {
   x: 0, jump: false, jumpPressed: false, jumpReleased: false,
   dash: false, dashPressed: false, down: false, pausePressed: false,
 };
-const btnState = { l: false, r: false, j: false, d: false, jWas: false, dWas: false };
+const btnState = { l: false, r: false, dn: false, j: false, d: false };
 
 addEventListener("keydown", (e) => {
   if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
@@ -290,19 +290,174 @@ addEventListener("keyup", (e) => {
   if (e.code === "Space" || e.code === "KeyZ" || e.code === "ArrowUp" || e.code === "KeyW") input.jumpReleased = true;
 });
 
-function bindHold(id, key) {
-  const el = document.getElementById(id);
-  const on = (v) => { btnState[key] = v; };
-  el.addEventListener("pointerdown", (e) => { e.preventDefault(); on(true); if (key === "j") input.jumpPressed = true; if (key === "d") input.dashPressed = true; });
-  el.addEventListener("pointerup", () => { on(false); if (key === "j") input.jumpReleased = true; });
-  el.addEventListener("pointerleave", () => { on(false); if (key === "j") input.jumpReleased = true; });
-  el.addEventListener("pointercancel", () => on(false));
+function toggleFullscreen() {
+  const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  if (!isFs) {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (req) req.call(el).catch(() => {});
+  } else {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+    if (exit) exit.call(document).catch(() => {});
+  }
 }
-bindHold("btnL", "l");
-bindHold("btnR", "r");
-bindHold("btnJ", "j");
-bindHold("btnD", "d");
-document.getElementById("btnP").addEventListener("pointerdown", (e) => { e.preventDefault(); input.pausePressed = true; });
+
+function updateFullscreenBtn() {
+  const btnFS = document.getElementById("btnFS");
+  if (!btnFS) return;
+  const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  btnFS.textContent = isFs ? "✕" : "⛶";
+  btnFS.title = isFs ? "Exit Fullscreen" : "Fullscreen";
+}
+document.addEventListener("fullscreenchange", updateFullscreenBtn);
+document.addEventListener("webkitfullscreenchange", updateFullscreenBtn);
+
+function setupTouchControls() {
+  const dirBtns = [
+    { el: document.getElementById("btnL"), key: "l" },
+    { el: document.getElementById("btnDn"), key: "dn" },
+    { el: document.getElementById("btnR"), key: "r" },
+  ];
+
+  let dirPointerId = null;
+
+  function updateDirStates(x, y) {
+    for (const b of dirBtns) {
+      if (!b.el) continue;
+      const rect = b.el.getBoundingClientRect();
+      const inside = x >= rect.left - 16 && x <= rect.right + 16 &&
+                     y >= rect.top - 16 && y <= rect.bottom + 16;
+      btnState[b.key] = inside;
+      b.el.classList.toggle("active", inside);
+    }
+  }
+
+  function clearDirs() {
+    for (const b of dirBtns) {
+      btnState[b.key] = false;
+      if (b.el) b.el.classList.remove("active");
+    }
+  }
+
+  for (const b of dirBtns) {
+    if (!b.el) continue;
+    b.el.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      ensureAudio();
+      dirPointerId = e.pointerId;
+      try { b.el.setPointerCapture(e.pointerId); } catch (_) {}
+      updateDirStates(e.clientX, e.clientY);
+    });
+
+    b.el.addEventListener("pointermove", (e) => {
+      if (e.pointerId === dirPointerId) {
+        updateDirStates(e.clientX, e.clientY);
+      }
+    });
+
+    const releaseDir = (e) => {
+      if (e.pointerId === dirPointerId) {
+        dirPointerId = null;
+        clearDirs();
+        try { b.el.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+    };
+    b.el.addEventListener("pointerup", releaseDir);
+    b.el.addEventListener("pointercancel", releaseDir);
+  }
+
+  const btnJ = document.getElementById("btnJ");
+  let jumpPointerId = null;
+  if (btnJ) {
+    btnJ.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      ensureAudio();
+      jumpPointerId = e.pointerId;
+      btnState.j = true;
+      input.jumpPressed = true;
+      btnJ.classList.add("active");
+      try { btnJ.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    btnJ.addEventListener("pointermove", (e) => {
+      if (e.pointerId === jumpPointerId) {
+        const r = btnJ.getBoundingClientRect();
+        const inside = e.clientX >= r.left - 24 && e.clientX <= r.right + 24 &&
+                       e.clientY >= r.top - 24 && e.clientY <= r.bottom + 24;
+        btnState.j = inside;
+        btnJ.classList.toggle("active", inside);
+      }
+    });
+    const releaseJump = (e) => {
+      if (e.pointerId === jumpPointerId) {
+        jumpPointerId = null;
+        btnState.j = false;
+        input.jumpReleased = true;
+        btnJ.classList.remove("active");
+        try { btnJ.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+    };
+    btnJ.addEventListener("pointerup", releaseJump);
+    btnJ.addEventListener("pointercancel", releaseJump);
+  }
+
+  const btnD = document.getElementById("btnD");
+  let dashPointerId = null;
+  if (btnD) {
+    btnD.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      ensureAudio();
+      dashPointerId = e.pointerId;
+      btnState.d = true;
+      input.dashPressed = true;
+      btnD.classList.add("active");
+      try { btnD.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    btnD.addEventListener("pointermove", (e) => {
+      if (e.pointerId === dashPointerId) {
+        const r = btnD.getBoundingClientRect();
+        const inside = e.clientX >= r.left - 24 && e.clientX <= r.right + 24 &&
+                       e.clientY >= r.top - 24 && e.clientY <= r.bottom + 24;
+        btnState.d = inside;
+        btnD.classList.toggle("active", inside);
+      }
+    });
+    const releaseDash = (e) => {
+      if (e.pointerId === dashPointerId) {
+        dashPointerId = null;
+        btnState.d = false;
+        btnD.classList.remove("active");
+        try { btnD.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+    };
+    btnD.addEventListener("pointerup", releaseDash);
+    btnD.addEventListener("pointercancel", releaseDash);
+  }
+
+  const btnP = document.getElementById("btnP");
+  if (btnP) {
+    btnP.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      ensureAudio();
+      input.pausePressed = true;
+    });
+  }
+
+  const btnFS = document.getElementById("btnFS");
+  if (btnFS) {
+    const fsSupported = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled ||
+      document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+    if (!fsSupported) {
+      btnFS.style.display = "none";
+    } else {
+      btnFS.addEventListener("click", (e) => {
+        e.preventDefault();
+        ensureAudio();
+        toggleFullscreen();
+      });
+    }
+  }
+}
+setupTouchControls();
 
 let padJumpWas = false, padDashWas = false, padPauseWas = false;
 function pollPad() {
@@ -344,7 +499,7 @@ function gatherInput() {
   if (keys.has("ArrowLeft") || keys.has("KeyA") || btnState.l) input.x -= 1;
   if (keys.has("ArrowRight") || keys.has("KeyD") || btnState.r) input.x += 1;
   if (keys.has("Space") || keys.has("KeyZ") || keys.has("ArrowUp") || keys.has("KeyW") || btnState.j) input.jump = true;
-  if (keys.has("ArrowDown") || keys.has("KeyS")) input.down = true;
+  if (keys.has("ArrowDown") || keys.has("KeyS") || btnState.dn) input.down = true;
   input.dash = keys.has("ShiftLeft") || keys.has("ShiftRight") || keys.has("KeyX") || keys.has("KeyK") || btnState.d;
   pollPad();
   if (input.x > 1) input.x = 1;
@@ -1502,11 +1657,12 @@ function drawIntro() {
 function drawTutorial() {
   const p = game.player;
   if (!p || game.intro > 0 || game.paused) return;
+  const isTouch = window.matchMedia("(pointer: coarse)").matches || settings.touch === "on";
   let msg = "";
-  if (!game.seen.move) msg = "Move  A D   or   arrows   or   stick";
-  else if (!game.seen.jump) msg = "Jump  Space / Z     hold for more height";
-  else if (!game.seen.wall && game.levelIndex === 0 && p.x > 28 * TILE) msg = "Wall jump: hold into a wall, then jump";
-  else if (!game.seen.dash && p.x > 50 * TILE && game.levelIndex === 0) msg = "Dash  Shift / X     once, until you land";
+  if (!game.seen.move) msg = isTouch ? "Move with  ◀  ▶" : "Move  A D   or   arrows   or   stick";
+  else if (!game.seen.jump) msg = isTouch ? "Jump with  JUMP  (hold for more height)" : "Jump  Space / Z     hold for more height";
+  else if (!game.seen.wall && game.levelIndex === 0 && p.x > 28 * TILE) msg = isTouch ? "Wall jump: hold into wall, then press JUMP" : "Wall jump: hold into a wall, then jump";
+  else if (!game.seen.dash && p.x > 50 * TILE && game.levelIndex === 0) msg = isTouch ? "Dash with  DASH  (resets when you land)" : "Dash  Shift / X     once, until you land";
   else if (!game.seen.light && p.x > 32 * TILE && game.levelIndex === 0) { msg = "The lantern wakes hidden ground"; game.seen.light = p.x > 40 * TILE; }
   else if (!game.seen.foe && game.enemies.some((e) => !e.dead && Math.abs(e.x - p.x) < 70)) { msg = "Stomp foes, or hold the light until they flee"; game.seen.foe = true; }
   if (!msg) return;
@@ -1539,7 +1695,7 @@ function drawButtons() {
 function hitButton(mx, my) {
   for (let i = buttons.length - 1; i >= 0; i--) {
     const b = buttons[i];
-    if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) return b;
+    if (mx >= b.x - 4 && mx <= b.x + b.w + 4 && my >= b.y - 4 && my <= b.y + b.h + 4) return b;
   }
   return null;
 }
@@ -1554,7 +1710,8 @@ function drawTitle() {
   drawButtons();
   const best = save.best.forest;
   text(best ? `Best mile  ${formatTime(best.time)}` : "No road remembered yet", W / 2, 230, { align: "center", size: 8, color: COL.dim });
-  text("Keyboard   mouse   gamepad", W / 2, 252, { align: "center", size: 8, color: "#6e6458" });
+  const isTouch = window.matchMedia("(pointer: coarse)").matches;
+  text(isTouch ? "Touch controls ready" : "Keyboard   mouse   gamepad", W / 2, 252, { align: "center", size: 8, color: "#6e6458" });
 }
 function titleAction(i) {
   sfx.ui();
@@ -1709,6 +1866,7 @@ function activateMenu() {
 }
 
 function loop() {
+  syncTouch();
   if (game.screen !== "play" || game.paused) {
     gatherInput();
     const n = menuCount();
@@ -1747,10 +1905,24 @@ canvas.addEventListener("pointerdown", (e) => {
   if (b) { b.fn(); sfx.ui(); }
 });
 
+let lastTouchOn = null;
 function syncTouch() {
   const coarse = window.matchMedia("(pointer: coarse)").matches;
-  const on = settings.touch === "on" || (settings.touch === "auto" && coarse);
-  document.getElementById("touch").classList.toggle("on", on && game.screen === "play");
+  const on = (settings.touch === "on" || (settings.touch === "auto" && coarse)) && game.screen === "play" && !game.paused;
+  if (on !== lastTouchOn) {
+    lastTouchOn = on;
+    const touchEl = document.getElementById("touch");
+    if (touchEl) touchEl.classList.toggle("on", on);
+    if (!on) {
+      btnState.l = false;
+      btnState.r = false;
+      btnState.dn = false;
+      btnState.j = false;
+      btnState.d = false;
+      const activeBtns = document.querySelectorAll("#touch button.active");
+      activeBtns.forEach((b) => b.classList.remove("active"));
+    }
+  }
 }
 addEventListener("resize", syncTouch);
 
