@@ -1,0 +1,79 @@
+:root {
+  --bg: #07060a;
+  --ink: #f3ead7;
+  --dim: #a89880;
+  --accent: #ffb15a;
+  --danger: #e23d4a;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Courier New", Courier, monospace;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#wrap {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(900px 500px at 50% 40%, #1a1422 0%, #07060a 70%);
+}
+canvas#c {
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: min(100vh, calc(100vw * 9 / 16));
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #07060a;
+  cursor: pointer;
+  z-index: 1;
+}
+#touch {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  display: none;
+}
+#touch.on { display: block; }
+#touch button {
+  pointer-events: auto;
+  position: absolute;
+  border: 2px solid rgba(243, 234, 215, 0.45);
+  background: rgba(12, 10, 16, 0.42);
+  color: #f3ead7;
+  font-family: inherit;
+  font-weight: 700;
+  border-radius: 14px;
+  font-size: 22px;
+  width: 74px;
+  height: 74px;
+  backdrop-filter: blur(2px);
+}
+#btnL { left: 22px; bottom: 28px; }
+#btnR { left: 112px; bottom: 28px; }
+#btnJ { right: 22px; bottom: 28px; width: 86px; height: 86px; }
+#btnD { right: 124px; bottom: 42px; }
+#btnP { right: 16px; top: 14px; width: 54px; height: 42px; font-size: 14px; }
+#rotate {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: #07060a;
+  color: #f3ead7;
+  place-items: center;
+  text-align: center;
+  padding: 24px;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+}
+@media (orientation: portrait) and (max-width: 900px) {
+  #rotate { display: grid; }
+}
